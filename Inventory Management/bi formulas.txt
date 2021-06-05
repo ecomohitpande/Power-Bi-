@@ -1,0 +1,65 @@
+1. ABC Classification 
+
+a. Annual Sales= Annual Sales = CALCULATE(
+    SUM('Past Orders'[Order Quantity]),
+    FILTER('Past Orders',
+    'Past Orders'[SKU ID]=Stock[SKU ID] &&
+    'Past Orders'[Order Date]>=today()-365))
+
+b. Annual Revenue = Stock[Annual Sales]*Stock[Unit Price]
+
+c. Revenue Share = 100*Stock[Annual Revenue]/SUM(Stock[Annual Revenue])
+
+d. cummulative share = CALCULATE(SUM(Stock[Revenue Share]),FILTER(Stock,Stock[Revenue Share]>=EARLIER(Stock[Revenue Share])))
+
+e. ABC = IF(Stock[cummulative share]<=70,"A", IF(Stock[cummulative share]<=90, "B", "C"))
+f. ABC rank = RANK.EQ(Stock[Cummulative share],Stock[Cummulative share],ASC)
+
+2. XYZ Classification
+a. Weekly data sheet (for this we will weekly data) by creating table
+
+SKU Table = SUMMARIZE(Stock,
+Stock[SKU ID])
+
+Week table  = GENERATESERIES(today()-365, TODAY(),7) 
+
+Weekly Demand Sheet = GENERATE('Weak Date', 'SKU Table')
+
+Weeks Demand = Weeks Demand = CALCULATE(
+    SUM('Past Orders'[Order Quantity]),
+    FILTER('Past Orders',
+'Past Orders'[SKU ID]='weekly demand'[SKU ID] &&
+'Past Orders'[Order Date]>='weekly demand'[Value]-6 &&
+'Past Orders'[Order Date]<='weekly demand'[Value]))+0
+
+Sales Amount = LOOKUPsales amount= VALUE(Stock[Unit Price],Stock[SKU ID],'Weekly Demand Sheet'[SKU ID])*'Weekly Demand Sheet'[Weeks Demand]
+
+Average weekly demand = CALCULATE(AVERAGE('weekly demand'[Weeks Demand]),
+FILTER('weekly demand',
+'weekly demand'[SKU ID]=Stock[SKU ID]))
+
+SD of weekly demand = CALCULATE(
+    STDEV.P('weekly demand'[Weeks Demand]),
+    FILTER('weekly demand',
+    Stock[SKU ID]='weekly demand'[SKU ID]))+0
+
+Coefficent of variation = Stock[SD of weekly Demand]/Stock[Average Weekly Demand]
+Cv rank = RANK.EQ(Stock[Cv], Stock[Cv],1)
+
+XYZ = IF(Stock[Cv Rank]<=.2*MAX(Stock[Cv Rank]),"X[Uniform Demand]", 
+IF(Stock[Cv Rank]<=.5*MAX(Stock[Cv Rank]),"Y[Variable Demand]","Z[Uncertain Demand]"))
+
+3. Inventory Turnover Ratio=  value in WH = Stock[Unit Price]*Stock[Current Stock Quantity] 
+
+
+4. Safety Stock Level 
+a. Peak weekly demand = CALCULATE(MAX('weekly demand'[Weeks Demand]),FILTER('weekly demand','weekly demand'[SKU ID]=Stock[SKU ID]))
+b. Safety Stock = (Stock[Peak weekly demand]*Stock[Maximum Lead Time (days)]/7)-(Stock[Average weekly demand]*Stock[Average Lead Time (days)]/7)
+
+5. Reorder Levels= Re order point = Stock[Safety Stock]+(Stock[Average weekly demand]*Stock[Average Lead Time (days)]/7)
+
+6. Stock Status = 
+a. Do we need = IF(Stock[Re order point]>Stock[Current Stock Quantity],"Yes", "No") 
+b. Stock Status = IF(Stock[Current Stock Quantity]=0, "Out of Stock", if(Stock[Do we need]="yes","below reorder point", "INstock"))
+
+7. Forecasting = 
